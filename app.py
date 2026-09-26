@@ -168,4 +168,19 @@ def _cleanup_old_jobs():
 
 
 # --------------------------------------------------------------------------- frontend
-app.mount("/", StaticFiles(directory=os.path.join(BASE_DIR, "static"), html=True), name="static")
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+if not os.path.isdir(STATIC_DIR):
+    # Guard against a deploy where static/index.html wasn't committed to git
+    # (e.g. missing from the repo / excluded by .gitignore) — build a minimal
+    # fallback instead of crashing the whole server on startup.
+    os.makedirs(STATIC_DIR, exist_ok=True)
+    with open(os.path.join(STATIC_DIR, "index.html"), "w", encoding="utf-8") as f:
+        f.write(
+            "<!doctype html><html><body style='font-family:sans-serif;padding:40px'>"
+            "<h2>static/index.html is missing from this deploy</h2>"
+            "<p>The API is running (try <code>/api/voices</code>), but the real frontend "
+            "file was not found on disk. Make sure <code>static/index.html</code> is "
+            "committed to git and re-deploy.</p></body></html>"
+        )
+
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

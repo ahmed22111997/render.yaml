@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Use — Podcast TTS Studio</title>
+<link rel="stylesheet" href="/shared.css">
+<style>body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:24px}</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a class="brand" href="/">🎙️ Podcast TTS Studio</a>
+  <a href="/">Home</a>
+  <a href="/how-to.html">How to Use</a>
+  <a href="/about.html">About</a>
+  <a href="/privacy.html">Privacy Policy</a>
+  <a href="/terms.html">Terms of Service</a>
+  <a href="/contact.html">Contact</a>
+</nav>
+
+<div class="content">
+  <h1>How to Use Podcast TTS Studio</h1>
+  <p class="lead">Everything you need to write a script and get a finished episode.</p>
+
+  <h2>1. Write your script</h2>
+  <p>
+    Each line starts with a speaker label followed by a colon, for example:
+  </p>
+  <p>
+    <code>Host: Welcome back to the show.</code><br>
+    <code>Guest: Thanks for having me.</code>
+  </p>
+  <p>
+    A line with no label continues the previous speaker's turn, so you can write a long
+    paragraph across several lines without repeating the name. You can use up to four
+    different speakers per episode.
+  </p>
+
+  <h2>2. Leave out anything you don't want spoken</h2>
+  <p>
+    Put stage directions or notes in square brackets, like <code>[laughs]</code> or
+    <code>[music fades in]</code> — text inside brackets is skipped by the narrator.
+    Markdown symbols such as <code>*</code>, <code>#</code>, and <code>`</code> are also
+    stripped automatically.
+  </p>
+
+  <h2>3. Pick a voice per speaker</h2>
+  <p>
+    Filter the voice list by language, then assign a distinct voice, speaking speed, and
+    pitch to each speaker. Mixing a lower-pitched and a higher-pitched voice usually makes
+    it easiest for listeners to tell speakers apart.
+  </p>
+
+  <h2>4. Add delivery and emotion (optional)</h2>
+  <p>
+    Put an emotion in parentheses right after a speaker's name to apply it to that whole
+    turn:
+  </p>
+  <p><code>Guest (excited): Thanks for having me! It's a strange story.</code></p>
+  <p>
+    Or switch emotion partway through a turn with a curly-brace tag, and insert a timed
+    pause the same way:
+  </p>
+  <p><code>Guest: Quite a lot. {pause 1.0} {sad} Your brain replays the day.</code></p>
+  <p>
+    Available emotions include neutral, happy, excited, curious, surprised, serious,
+    thoughtful, calm, and sad (plus a few common synonyms like "cheerful" or "gentle").
+    These presets adjust speaking speed, pitch, and volume — they approximate a mood
+    rather than a full voice-acting performance, so it's worth generating a short test
+    line first and adjusting the "emotion strength" slider to taste.
+  </p>
+
+  <h2>5. Generate and download</h2>
+  <p>
+    Press "Generate episode." Longer scripts take longer because each chunk of speech is
+    synthesized in sequence. When it finishes, you can preview the result in the built-in
+    player and download the MP3, WAV, and — if you checked the subtitles option — an SRT
+    file with per-line timestamps.
+  </p>
+
+  <h2>FAQ</h2>
+
+  <h2>Is this free?</h2>
+  <p>Yes. There's no account, no sign-up, and no usage cap beyond keeping scripts to a reasonable length.</p>
+
+  <h2>Are the voices real people?</h2>
+  <p>No — they're general-purpose synthetic neural voices, not recordings or clones of specific individuals.</p>
+
+  <h2>How long are my files kept?</h2>
+  <p>Generated files are temporary and are automatically removed a few hours after creation, so download what you need right away.</p>
+
+  <h2>Can I use the audio commercially?</h2>
+  <p>You're responsible for how you use audio you generate; see the <a class="inline" href="/terms.html">Terms of Service</a> for acceptable use.</p>
+</div>
+
+<footer class="site-footer">
+  <span>© 2026 Podcast TTS Studio. Founder: Ahmed.</span>
+  <span><a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="/contact.html">Contact</a></span>
+</footer>
+</body>
+</html>
