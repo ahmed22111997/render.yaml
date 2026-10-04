@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://render-yaml-p79c.onrender.com/sitemap.xml

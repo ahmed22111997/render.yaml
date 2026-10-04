@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Podcast TTS Studio</title>
+<link rel="stylesheet" href="/shared.css">
+<style>
+  :root{--bg:#0f1115;--panel:#171a21;--border:#2a2f3a;--text:#e8eaed;--muted:#9aa0ac;--accent:#5b8cff;--accent2:#3f6ae0;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:24px}
+  .wrap{max-width:960px;margin:0 auto}
+  h1{font-size:1.4rem;margin-bottom:4px}
+  p.sub{color:var(--muted);margin-top:0;font-size:.9rem}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px}
+  label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;margin-top:10px}
+  textarea,input[type=text],select{width:100%;background:#0d0f14;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:.9rem}
+  textarea{min-height:180px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:800px){.grid4{grid-template-columns:repeat(2,1fr)}}
+  .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:160px}
+  input[type=range]{width:100%}
+  .rangeval{font-size:.75rem;color:var(--muted)}
+  .speaker{border:1px solid var(--border);border-radius:8px;padding:10px;background:#12151c}
+  button{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:10px 18px;font-size:.95rem;cursor:pointer}
+  button:hover{background:var(--accent2)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .checks{display:flex;gap:18px;align-items:center;font-size:.85rem;color:var(--muted)}
+  .checks label{display:flex;align-items:center;gap:6px;margin:0;color:var(--text)}
+  #status{margin-top:14px;font-size:.9rem;white-space:pre-wrap}
+  #status.error{color:#ff6b6b}
+  #status.ok{color:#6bcf7f}
+  audio{width:100%;margin-top:10px}
+  .files a{display:inline-block;margin-right:12px;color:var(--accent);text-decoration:none;font-size:.85rem}
+  .files a:hover{text-decoration:underline}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:6px}
+  code{background:#0d0f14;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a class="brand" href="/">🎙️ Podcast TTS Studio</a>
+  <a href="/">Home</a>
+  <a href="/how-to.html">How to Use</a>
+  <a href="/about.html">About</a>
+  <a href="/privacy.html">Privacy Policy</a>
+  <a href="/terms.html">Terms of Service</a>
+  <a href="/contact.html">Contact</a>
+</nav>
+<div class="wrap">
+  <h1>🎙️ Podcast TTS Studio</h1>
+  <p class="sub">Turn a dialogue script into a multi-voice podcast episode (MP3/WAV, optional subtitles) — free neural voices.</p>
+
+  <div class="panel">
+    <label for="script">Script</label>
+    <textarea id="script"></textarea>
+    <div class="hint" id="limitsHint"></div>
+    <div class="hint">
+      Format: <code>Host: text</code> / <code>Guest: text</code> — up to 4 speakers, one per line (a line with no label continues the previous speaker).
+      <code>[bracket notes]</code> aren't spoken. Emotion for a whole turn: <code>Guest (excited): ...</code>. Mid-turn: <code>{sad}</code> or a pause <code>{pause 1.5}</code>.
+      Available emotions: <span id="emotionList" style="color:var(--text)"></span>.
+    </div>
+
+    <label for="lang">Voice language filter</label>
+    <select id="lang"></select>
+
+    <div class="grid4" id="speakers"></div>
+
+    <div class="row" style="margin-top:16px">
+      <div>
+        <label>Pause between turns (s): <span id="gapVal" class="rangeval"></span></label>
+        <input type="range" id="gap" min="0.1" max="1.5" step="0.05" value="0.45">
+      </div>
+      <div>
+        <label>Max characters per request: <span id="maxCharsVal" class="rangeval"></span></label>
+        <input type="range" id="maxChars" min="200" max="1500" step="50" value="600">
+      </div>
+      <div>
+        <label>Emotion strength: <span id="strengthVal" class="rangeval"></span></label>
+        <input type="range" id="strength" min="0" max="2" step="0.1" value="1.0">
+      </div>
+    </div>
+    <div class="checks" style="margin-top:12px">
+      <label><input type="checkbox" id="srt"> Also create subtitles (.srt)</label>
+      <label><input type="checkbox" id="jitter" checked> Natural pause variation</label>
+    </div>
+
+    <label for="musicTrack" style="margin-top:16px">Background music (optional)</label>
+    <select id="musicTrack"><option value="">None</option></select>
+    <div class="row" style="margin-top:6px" id="musicVolRow">
+      <div>
+        <label>Music volume: <span id="musicVolVal" class="rangeval"></span></label>
+        <input type="range" id="musicVol" min="-40" max="0" step="1" value="-18">
+      </div>
+    </div>
+    <div class="hint">Fades in/out automatically and loops or trims to match the episode length.</div>
+
+    <div style="margin-top:18px">
+      <button id="genBtn">Generate episode</button>
+    </div>
+
+    <div id="status"></div>
+    <audio id="player" controls style="display:none"></audio>
+    <div class="files" id="files"></div>
+
+    <div id="videoPanel" style="display:none;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">
+      <label style="margin-top:0">Turn into video</label>
+      <div class="hint" style="margin-top:0">
+        Upload one image (still picture for the whole episode) or several (a slideshow — each image gets an equal share of the runtime).
+      </div>
+      <input type="file" id="videoImages" accept="image/jpeg,image/png,image/webp" multiple style="margin-top:8px">
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>Format</label>
+          <select id="videoFormat">
+            <option value="mp4">MP4 (recommended — works everywhere, YouTube-ready)</option>
+            <option value="webm">WebM</option>
+          </select>
+        </div>
+      </div>
+      <div class="checks" style="margin-top:10px">
+        <label><input type="checkbox" id="burnSubs"> Burn in captions</label>
+      </div>
+      <div class="hint" id="burnSubsHint" style="margin-top:4px"></div>
+      <div style="margin-top:14px">
+        <button id="makeVideoBtn">Create video</button>
+      </div>
+      <div id="videoStatus" style="margin-top:10px;font-size:.9rem;white-space:pre-wrap"></div>
+      <video id="videoPlayer" controls style="width:100%;margin-top:10px;display:none"></video>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <span>© 2026 Podcast TTS Studio. Founder: Ahmed.</span>
+  <span><a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="/contact.html">Contact</a></span>
+</footer>
+
+<script>
+const MAX_SPEAKERS = 4;
+let VOICES = [];
+let DEFAULTS = null;
+
+async function init() {
+  const [voices, defaults, music] = await Promise.all([
+    fetch('/api/voices').then(r => r.json()),
+    fetch('/api/defaults').then(r => r.json()),
+    fetch('/api/music').then(r => r.json()).catch(() => []),
+  ]);
+  VOICES = voices;
+  DEFAULTS = defaults;
+
+  document.getElementById('script').value = defaults.example_script;
+  document.getElementById('emotionList').textContent = defaults.emotions.join(', ');
+  document.getElementById('limitsHint').textContent =
+    `Limits: up to ${defaults.max_script_chars.toLocaleString()} characters per script, `
+    + `${defaults.generate_limit_per_hour} generations per hour per visitor.`;
+
+  const musicSel = document.getElementById('musicTrack');
+  music.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = `${t.name} — ${t.mood}`;
+    musicSel.appendChild(opt);
+  });
+
+  const langSel = document.getElementById('lang');
+  Object.keys(defaults.langs).forEach(label => {
+    const opt = document.createElement('option');
+    opt.value = defaults.langs[label];
+    opt.textContent = label;
+    if (label === 'English') opt.selected = true;
+    langSel.appendChild(opt);
+  });
+  langSel.addEventListener('change', () => buildSpeakers(langSel.value));
+
+  buildSpeakers('en');
+}
+
+function voicesFor(prefix) {
+  const vs = prefix ? VOICES.filter(v => v.name.toLowerCase().startsWith(prefix.toLowerCase())) : VOICES;
+  return vs.length ? vs : VOICES;
+}
+
+function buildSpeakers(prefix) {
+  const container = document.getElementById('speakers');
+  const prevNames = Array.from(container.querySelectorAll('.sp-name')).map(i => i.value);
+  container.innerHTML = '';
+  const vs = voicesFor(prefix);
+  const defaultVoiceNames = prefix === 'en' ? DEFAULTS.default_voices_en
+                                             : vs.slice(0, MAX_SPEAKERS).map(v => v.name);
+
+  for (let i = 0; i < MAX_SPEAKERS; i++) {
+    const div = document.createElement('div');
+    div.className = 'speaker';
+    div.innerHTML = `
+      <label>Speaker ${i+1} name</label>
+      <input type="text" class="sp-name" value="${prevNames[i] || DEFAULTS.default_names[i]}">
+      <label>Voice</label>
+      <select class="sp-voice"></select>
+      <label>Speed (%): <span class="sp-rate-val rangeval">0</span></label>
+      <input type="range" class="sp-rate" min="-40" max="40" step="5" value="0">
+      <label>Pitch (Hz): <span class="sp-pitch-val rangeval">0</span></label>
+      <input type="range" class="sp-pitch" min="-20" max="20" step="1" value="0">
+    `;
+    const sel = div.querySelector('.sp-voice');
+    vs.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      opt.textContent = `${v.name} (${v.gender})`;
+      if (v.name === (defaultVoiceNames[i] || vs[0].name)) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    const rate = div.querySelector('.sp-rate'), rateVal = div.querySelector('.sp-rate-val');
+    rate.addEventListener('input', () => rateVal.textContent = rate.value);
+    const pitch = div.querySelector('.sp-pitch'), pitchVal = div.querySelector('.sp-pitch-val');
+    pitch.addEventListener('input', () => pitchVal.textContent = pitch.value);
+    container.appendChild(div);
+  }
+}
+
+['gap', 'maxChars', 'strength', 'musicVol'].forEach(id => {
+  const el = document.getElementById(id);
+  const val = document.getElementById(id + 'Val');
+  const upd = () => val.textContent = el.value;
+  el.addEventListener('input', upd);
+  upd();
+});
+
+function collectSpeakers() {
+  return Array.from(document.querySelectorAll('#speakers .speaker')).map(div => ({
+    name: div.querySelector('.sp-name').value.trim(),
+    voice: div.querySelector('.sp-voice').value,
+    rate: parseInt(div.querySelector('.sp-rate').value, 10),
+    pitch: parseInt(div.querySelector('.sp-pitch').value, 10),
+  }));
+}
+
+let CURRENT_JOB_ID = null;
+let CURRENT_HAS_SRT = false;
+
+async function poll(jobId) {
+  const statusEl = document.getElementById('status');
+  const player = document.getElementById('player');
+  const filesEl = document.getElementById('files');
+  for (;;) {
+    const res = await fetch(`/api/status/${jobId}`);
+    const job = await res.json();
+    if (job.status === 'queued' || job.status === 'running') {
+      statusEl.className = '';
+      statusEl.textContent = job.status === 'queued' ? 'Queued…' : 'Generating… this can take a while for long scripts.';
+    } else if (job.status === 'done') {
+      statusEl.className = 'ok';
+      statusEl.textContent = job.message;
+      const mp3 = job.files.find(f => f.endsWith('_with_music.mp3')) || job.files.find(f => f.endsWith('.mp3'));
+      if (mp3) {
+        player.src = `/api/download/${jobId}/${mp3}`;
+        player.style.display = 'block';
+      }
+      filesEl.innerHTML = '';
+      job.files.forEach(f => {
+        const a = document.createElement('a');
+        a.href = `/api/download/${jobId}/${f}`;
+        a.textContent = f;
+        a.download = f;
+        filesEl.appendChild(a);
+      });
+
+      CURRENT_JOB_ID = jobId;
+      CURRENT_HAS_SRT = job.files.some(f => f.endsWith('.srt'));
+      document.getElementById('burnSubsHint').textContent = CURRENT_HAS_SRT
+        ? 'Captions will follow the subtitle timing from this episode.'
+        : "This episode wasn't generated with subtitles — check 'Also create subtitles' above and regenerate if you want burned-in captions.";
+      document.getElementById('burnSubs').disabled = !CURRENT_HAS_SRT;
+      document.getElementById('videoPanel').style.display = 'block';
+      return;
+    } else if (job.status === 'error') {
+      statusEl.className = 'error';
+      statusEl.textContent = 'Error: ' + job.error;
+      return;
+    }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+}
+
+async function pollVideo(jobId) {
+  const statusEl = document.getElementById('videoStatus');
+  const player = document.getElementById('videoPlayer');
+  const filesEl = document.getElementById('files');
+  for (;;) {
+    const res = await fetch(`/api/video-status/${jobId}`);
+    const v = await res.json();
+    if (v.status === 'queued' || v.status === 'running') {
+      statusEl.className = '';
+      statusEl.textContent = v.status === 'queued' ? 'Queued…' : 'Rendering video… this can take a minute or two.';
+    } else if (v.status === 'done') {
+      statusEl.className = 'ok';
+      statusEl.textContent = 'Video ready.';
+      player.src = `/api/download/${jobId}/${v.file}`;
+      player.style.display = 'block';
+      const a = document.createElement('a');
+      a.href = `/api/download/${jobId}/${v.file}`;
+      a.textContent = v.file;
+      a.download = v.file;
+      filesEl.appendChild(a);
+      return;
+    } else if (v.status === 'error') {
+      statusEl.className = 'error';
+      statusEl.textContent = 'Error: ' + v.error;
+      return;
+    }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+}
+
+document.getElementById('makeVideoBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('makeVideoBtn');
+  const statusEl = document.getElementById('videoStatus');
+  const files = document.getElementById('videoImages').files;
+  if (!CURRENT_JOB_ID) return;
+  if (!files.length) {
+    statusEl.className = 'error';
+    statusEl.textContent = 'Choose at least one image first.';
+    return;
+  }
+  const form = new FormData();
+  for (const f of files) form.append('images', f);
+  form.append('burn_subtitles', document.getElementById('burnSubs').checked);
+  form.append('video_format', document.getElementById('videoFormat').value);
+
+  btn.disabled = true;
+  statusEl.className = '';
+  statusEl.textContent = 'Uploading…';
+  try {
+    const res = await fetch(`/api/attach-video/${CURRENT_JOB_ID}`, { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || res.statusText);
+    }
+    await pollVideo(CURRENT_JOB_ID);
+  } catch (e) {
+    statusEl.className = 'error';
+    statusEl.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('genBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('genBtn');
+  const statusEl = document.getElementById('status');
+  document.getElementById('files').innerHTML = '';
+  document.getElementById('player').style.display = 'none';
+  document.getElementById('videoPanel').style.display = 'none';
+  document.getElementById('videoStatus').textContent = '';
+  document.getElementById('videoPlayer').style.display = 'none';
+  CURRENT_JOB_ID = null;
+  const payload = {
+    script: document.getElementById('script').value,
+    speakers: collectSpeakers(),
+    turn_gap: parseFloat(document.getElementById('gap').value),
+    max_chars: parseInt(document.getElementById('maxChars').value, 10),
+    srt: document.getElementById('srt').checked,
+    jitter: document.getElementById('jitter').checked,
+    emotion_strength: parseFloat(document.getElementById('strength').value),
+    music_track: document.getElementById('musicTrack').value || null,
+    music_volume_db: parseFloat(document.getElementById('musicVol').value),
+  };
+  btn.disabled = true;
+  statusEl.className = '';
+  statusEl.textContent = 'Submitting…';
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || res.statusText);
+    }
+    const { job_id } = await res.json();
+    await poll(job_id);
+  } catch (e) {
+    statusEl.className = 'error';
+    statusEl.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+init();
+</script>
+</body>
+</html>
